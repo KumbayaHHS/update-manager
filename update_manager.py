@@ -3,6 +3,8 @@ import random
 import string
 import json
 from optparse import OptionParser
+import sys
+import subprocess
 
 iothub_name = "kumbaya-hub"
 
@@ -17,12 +19,30 @@ def create_device():
     print(create_device_stream.read())
     return device_id
 
+def get_wifi():
+    # Get Hotspot SSID
+    ssid_file = open('/etc/sysconfig/network-scripts/ifcfg-Hotspot', 'r')
+    ssid_file_content = ssid_file.readlines()
+    ssid = ''
+    for line in ssid_file_content:
+        if line.startswith('ESSID='):
+            ssid = line.replace('ESSID=', '').replace('\n', '')
+
+
+    # Get Hotspot password
+    f = open('/etc/sysconfig/network-scripts/keys-Hotspot', "r")
+    file_content = f.read()
+    file_content = file_content.replace('\n', '').split('=')
+    return ssid, file_content[1]
+
 def save_information_in_sketch(device_id):
     get_sas_token_stream = os.popen('az iot hub generate-sas-token -d ' + device_id + ' -n ' + iothub_name + ' --du 31556952')
     response = json.loads(get_sas_token_stream.read())
 
+    wifi_config = get_wifi()
+
     f = open("./prototype-software/src/secrets.h", "w")
-    f.write("#define WIFI_NAME \"Bbox-9D9A7C8C\"\n#define WIFI_PASSWORD \"947D524F7612A393519AEC5476C6E7\"\n#define DEVICE_ID \"" + device_id + "\"\n#define AZURE_HOSTNAME \"" + iothub_name + ".azure-devices.net\"\n")
+    f.write("#define WIFI_NAME \"" + wifi_config[0] + "\"\n#define WIFI_PASSWORD \"" + wifi_config[1] + "\"\n#define DEVICE_ID \"" + device_id + "\"\n#define AZURE_HOSTNAME \"" + iothub_name + ".azure-devices.net\"\n")
     f.write("#define AZURE_USERNAME \"" + iothub_name +  ".azure-devices.net/" + device_id + "/?api-version=2018-06-30\"\n#define AZURE_PASSWORD \"" + response["sas"] + "\"\n#define AZURE_FEEDBACK_TOPIC \"devices/" + device_id + "/messages/events/\"\n")
     f.write("#define AZURE_LED_TOPIC \"devices/" + device_id + "/messages/devicebound/#\"\n#define USER_ID \"" + options.user_id + "\"\n#define DEVEL\n")
     f.close()
