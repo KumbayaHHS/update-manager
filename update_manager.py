@@ -8,16 +8,20 @@ import subprocess
 
 iothub_name = "kumbaya-hub"
 
+
 def randomString(stringLength=8):
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for i in range(stringLength))
 
+
 def create_device():
     device_id = randomString(10)
-    print('create device ' +  device_id)
-    create_device_stream = os.popen('az iot hub device-identity create -n ' + iothub_name + ' -d ' + device_id + ' --ee')
+    print('create device ' + device_id)
+    create_device_stream = os.popen(
+        'az iot hub device-identity create -n ' + iothub_name + ' -d ' + device_id + ' --ee')
     print(create_device_stream.read())
     return device_id
+
 
 def get_wifi():
     # Get Hotspot SSID
@@ -28,15 +32,16 @@ def get_wifi():
         if line.startswith('ESSID='):
             ssid = line.replace('ESSID=', '').replace('\n', '')
 
-
     # Get Hotspot password
     f = open('/etc/sysconfig/network-scripts/keys-Hotspot', "r")
     file_content = f.read()
     file_content = file_content.replace('\n', '').split('=')
     return ssid, file_content[1]
 
+
 def save_information_in_sketch(device_id):
-    get_sas_token_stream = os.popen('az iot hub generate-sas-token -d ' + device_id + ' -n ' + iothub_name + ' --du 31556952')
+    get_sas_token_stream = os.popen(
+        'az iot hub generate-sas-token -d ' + device_id + ' -n ' + iothub_name + ' --du 31556952')
     response = json.loads(get_sas_token_stream.read())
 
     wifi_config = get_wifi()
@@ -118,5 +123,5 @@ if __name__ == "__main__":
                     stream_create = os.popen('git clone git@github.com:KumbayaHHS/prototype-software.git')
                     upload_sketch(board_name, bus_name)
 
-        elif len(output) == 0 :
+        elif len(output) == 0:
             device_connected = False
